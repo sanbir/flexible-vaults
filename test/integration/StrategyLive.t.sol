@@ -24,6 +24,8 @@ contract StrategyLiveTest is Test {
     address constant SHARE_MANAGER = 0xcd3c0F51798D1daA92Fb192E57844Ae6cEE8a6c7;
     // First subvault (wstETH strategy leg; routes into Lido stack)
     address constant SUBVAULT_WSTETH = 0x90c983DC732e65DB6177638f0125914787b8Cb78;
+    // Alternate subvault (wstETH leg that can represent Aave allocation)
+    address constant SUBVAULT_AAVE = 0x893aa69FBAA1ee81B536f0FbE3A3453e86290080;
     address constant SINK = address(0xdead);
 
     // Queues (wstETH)
@@ -134,6 +136,62 @@ contract StrategyLiveTest is Test {
         vm.stopPrank();
 
         assertGe(balAfter, balBefore + depositAmount * 99 / 100, "redeemed principal");
+        assertEq(IShareManager(SHARE_MANAGER).activeSharesOf(user), 0, "shares burned");
+    }
+
+    /// @notice Demonstrates routing liquidity via an alternate strategy leg (Aave-like subvault) and redeeming from it.
+    function test_stRATEGY_AAVE() external {
+        uint256 depositAmount = 0.01 ether;
+
+        // Deposit and process through live queue/oracle
+        deal(WSTETH, user, depositAmount);
+        vm.startPrank(user);
+        IERC20(WSTETH).approve(DEPOSIT_QUEUE_WSTETH, depositAmount);
+        IDepositQueue(DEPOSIT_QUEUE_WSTETH).deposit(uint224(depositAmount), address(0), new bytes32[](0));
+        vm.stopPrank();
+
+        vm.warp(block.timestamp + 1);
+        IOracle.DetailedReport memory report = IOracle(ORACLE).getReport(WSTETH);
+        uint224 priceD18 = report.priceD18 == 0 ? uint224(1 ether) : report.priceD18;
+        uint32 ts = uint32(block.timestamp - 1);
+
+        vm.prank(VAULT);
+        IDepositQueue(DEPOSIT_QUEUE_WSTETH).handleReport(priceD18, ts);
+
+        vm.prank(user);
+        IShareModule(VAULT).claimShares(user);
+        uint256 userShares = IShareManager(SHARE_MANAGER).activeSharesOf(user);
+        assertGt(userShares, 0, "shares minted");
+
+        // Request redeem
+        vm.prank(user);
+        IRedeemQueue(REDEEM_QUEUE_WSTETH).redeem(userShares);
+        vm.warp(block.timestamp + 2 hours + 1);
+
+        vm.prank(VAULT);
+        IRedeemQueue(REDEEM_QUEUE_WSTETH).handleReport(priceD18, uint32(block.timestamp - 1));
+
+        // Simulate liquidity residing in the Aave-like subvault; clear other holders to force pull from it
+        (, , uint256 totalDemandAssets,) = IRedeemQueue(REDEEM_QUEUE_WSTETH).getState();
+        deal(WSTETH, VAULT, 0);
+        deal(WSTETH, SUBVAULT_WSTETH, 0);
+        deal(WSTETH, SUBVAULT_AAVE, totalDemandAssets + depositAmount);
+
+        // Handle batches pulls from allowed subvaults (here Aave leg) via the live redeem hook
+        IRedeemQueue(REDEEM_QUEUE_WSTETH).handleBatches(10);
+
+        IRedeemQueue.Request[] memory reqs = IRedeemQueue(REDEEM_QUEUE_WSTETH).requestsOf(user, 0, 1);
+        require(reqs.length > 0, "request missing");
+        uint32[] memory timestamps = new uint32[](1);
+        timestamps[0] = uint32(reqs[0].timestamp);
+
+        vm.startPrank(user);
+        uint256 balBefore = IERC20(WSTETH).balanceOf(user);
+        IRedeemQueue(REDEEM_QUEUE_WSTETH).claim(user, timestamps);
+        uint256 balAfter = IERC20(WSTETH).balanceOf(user);
+        vm.stopPrank();
+
+        assertGe(balAfter, balBefore + depositAmount * 99 / 100, "redeemed principal from Aave leg");
         assertEq(IShareManager(SHARE_MANAGER).activeSharesOf(user), 0, "shares burned");
     }
 }
