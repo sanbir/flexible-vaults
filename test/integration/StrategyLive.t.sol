@@ -22,6 +22,9 @@ contract StrategyLiveTest is Test {
     address constant VAULT = 0x277C6A642564A91ff78b008022D65683cEE5CCC5;
     address constant ORACLE = 0x8a78e6b7E15C4Ae3aeAeE3bf0DE4F2de4078c1cD;
     address constant SHARE_MANAGER = 0xcd3c0F51798D1daA92Fb192E57844Ae6cEE8a6c7;
+    // First subvault (wstETH strategy leg; routes into Lido stack)
+    address constant SUBVAULT_WSTETH = 0x90c983DC732e65DB6177638f0125914787b8Cb78;
+    address constant SINK = address(0xdead);
 
     // Queues (wstETH)
     address constant DEPOSIT_QUEUE_WSTETH = 0x614cb9E9D13712781DfD15aDC9F3DAde60E4eFAb;
@@ -54,23 +57,35 @@ contract StrategyLiveTest is Test {
         // Fund the user with wstETH
         deal(WSTETH, user, depositAmount);
 
-        // Approve and deposit into the live wstETH deposit queue
-        vm.startPrank(user);
-        IERC20(WSTETH).approve(DEPOSIT_QUEUE_WSTETH, depositAmount);
-        IDepositQueue(DEPOSIT_QUEUE_WSTETH).deposit(uint224(depositAmount), address(0), new bytes32[](0));
-        vm.stopPrank();
+        // Approve, deposit, process pricing, route into strategy, and simulate Lido rewards (scoped to trim locals)
+        {
+            uint256 subvaultBalanceBefore = IERC20(WSTETH).balanceOf(SUBVAULT_WSTETH);
 
-        // Move time forward so the report timestamp can trail the current block but cover the request
-        vm.warp(block.timestamp + 1);
+            vm.startPrank(user);
+            IERC20(WSTETH).approve(DEPOSIT_QUEUE_WSTETH, depositAmount);
+            IDepositQueue(DEPOSIT_QUEUE_WSTETH).deposit(uint224(depositAmount), address(0), new bytes32[](0));
+            vm.stopPrank();
 
-        // Latest oracle price for wstETH
-        IOracle.DetailedReport memory report = IOracle(ORACLE).getReport(WSTETH);
-        uint224 priceD18 = report.priceD18 == 0 ? uint224(1 ether) : report.priceD18;
-        uint32 ts = uint32(block.timestamp - 1);
+            vm.warp(block.timestamp + 1);
 
-        // Propagate a fresh report directly via the vault (avoids reporter role frictions on fork)
-        vm.prank(VAULT);
-        IDepositQueue(DEPOSIT_QUEUE_WSTETH).handleReport(priceD18, ts);
+            IOracle.DetailedReport memory report = IOracle(ORACLE).getReport(WSTETH);
+            uint224 priceD18 = report.priceD18 == 0 ? uint224(1 ether) : report.priceD18;
+            uint32 ts = uint32(block.timestamp - 1);
+
+            vm.prank(VAULT);
+            IDepositQueue(DEPOSIT_QUEUE_WSTETH).handleReport(priceD18, ts);
+
+            uint256 subvaultBalanceAfterDeposit = IERC20(WSTETH).balanceOf(SUBVAULT_WSTETH);
+            assertGt(subvaultBalanceAfterDeposit, subvaultBalanceBefore, "assets routed to strategy subvault");
+
+            deal(WSTETH, SUBVAULT_WSTETH, subvaultBalanceAfterDeposit + (depositAmount / 10)); // +10% over user principal
+
+            uint256 vaultBalanceAfterDeposit = IERC20(WSTETH).balanceOf(VAULT);
+            if (vaultBalanceAfterDeposit > 0) {
+                vm.prank(VAULT);
+                IERC20(WSTETH).transfer(SINK, vaultBalanceAfterDeposit);
+            }
+        }
 
         // Claim shares on the vault (mints receipt tokens)
         vm.prank(user);
@@ -86,15 +101,23 @@ contract StrategyLiveTest is Test {
         // Advance time to satisfy redeem interval and report timestamp ordering
         vm.warp(block.timestamp + 2 hours + 1);
 
+        uint224 priceD18 = IOracle(ORACLE).getReport(WSTETH).priceD18;
+        if (priceD18 == 0) priceD18 = uint224(1 ether);
+
         // Process redeem pricing via oracle; ensure timestamp satisfies redeemInterval
         vm.prank(VAULT);
         IRedeemQueue(REDEEM_QUEUE_WSTETH).handleReport(priceD18, uint32(block.timestamp - 1));
 
-        // Inject liquidity to cover all outstanding batches so the live queue can settle immediately
-        (, , uint256 totalDemandAssets,) = IRedeemQueue(REDEEM_QUEUE_WSTETH).getState();
-        deal(WSTETH, VAULT, totalDemandAssets + depositAmount + 1 ether);
+        // Ensure sufficient liquidity at the strategy leg to satisfy all batches (simulate unstaking from Lido)
+        {
+            (, , uint256 totalDemandAssets,) = IRedeemQueue(REDEEM_QUEUE_WSTETH).getState();
+            uint256 currentSubBalance = IERC20(WSTETH).balanceOf(SUBVAULT_WSTETH);
+            if (currentSubBalance < totalDemandAssets) {
+                deal(WSTETH, SUBVAULT_WSTETH, totalDemandAssets + depositAmount);
+            }
+        }
 
-        // Pull liquidity and move batches forward
+        // Pull liquidity from the strategy leg (subvault) and move batches forward via the live hook
         IRedeemQueue(REDEEM_QUEUE_WSTETH).handleBatches(10);
 
         // Fetch request timestamp to claim
