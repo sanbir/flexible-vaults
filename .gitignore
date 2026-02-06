@@ -11,3 +11,8 @@ node_modules/
 yarn.lock
 foundry.lock
 report
+/.idea/inspectionProfiles/Project_Default.xml
+/.idea/.gitignore
+/.idea/flexible-vaults.iml
+/.idea/modules.xml
+/.idea/vcs.xml

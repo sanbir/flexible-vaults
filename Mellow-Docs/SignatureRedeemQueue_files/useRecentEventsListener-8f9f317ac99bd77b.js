@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunknotion_next=globalThis.webpackChunknotion_next||[]).push([[88738],{569313:(n,e,t)=>{t.r(e),t.d(e,{useRecentEventsListener:()=>u});var i=t(296540),s=()=>t(484714),o=()=>t(866727);function u(){const n=(0,s().v3)();return(0,i.useEffect)((()=>{o().l.initialize(n)}),[n]),o().l}}}]);
