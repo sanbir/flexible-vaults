@@ -23,18 +23,29 @@ library Constants {
     address public constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
     address public constant USDS = 0xdC035D45d973E3EC169d2276DDab16f1e407384F;
     address public constant USDU = 0xdde3eC717f220Fc6A29D6a4Be73F91DA5b718e55;
+    address public constant CRV = 0xD533a949740bb3306d119CC777fa900bA034cd52;
+    address public constant FLUID = 0x6f40d4A6237C257fff2dB00FA0510DeEECd303eb;
 
     address public constant USDE = 0x4c9EDD5852cd905f086C759E8383e09bff1E68B3;
     address public constant SUSDE = 0x9D39A5DE30e57443BfF2A8307A4256c8797A3497;
 
     address public constant MUSD = 0xdD468A1DDc392dcdbEf6db6e34E89AA338F9F186;
+    address public constant CBBTC = 0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf; // 8 decimals
+    address public constant TBTC = 0x18084fbA666a33d37592fA2633fD49a74DD93a88; // 18 decimals
+    address public constant WBTC = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599; // 8 decimals
+
+    address public constant WEETH = 0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee;
+    address public constant RSETH = 0xA1290d69c65A6Fe4DF752f95823fae25cB99e5A7;
 
     address public constant USR = 0x66a1E37c9b0eAddca17d3662D6c05F4DECf3e110;
+    address public constant STUSR = 0x6c8984bc7DBBeDAf4F6b2FD766f16eBB7d10AAb4;
     address public constant WSTUSR = 0x1202F5C7b4B9E47a1A484E8B270be34dbbC75055;
     address public constant USR_REQUEST_MANAGER = 0xAC85eF29192487E0a109b7f9E40C267a9ea95f2e;
 
     address public constant COWSWAP_SETTLEMENT = 0x9008D19f58AAbD9eD0D60971565AA8510560ab41;
     address public constant COWSWAP_VAULT_RELAYER = 0xC92E8bdf79f0507f65a392b0ab4667716BFE0110;
+
+    address public constant KYBERSWAP_ROUTER = 0x6131B5fae19EA4f9D964eAc0408E4408b66337b5;
 
     address public constant AAVE_CORE = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
     address public constant AAVE_PRIME = 0x4e033931ad43597d96D6bcc25c280717730B58B1;
@@ -42,6 +53,10 @@ library Constants {
     address public constant SPARK = 0xC13e21B648A5Ee794902342038FF3aDAB66BE987;
 
     address public constant AAVE_V3_ORACLE = 0x54586bE62E3c3580375aE3723C145253060Ca0C2;
+
+    address public constant MORPHO = 0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb;
+    bytes32 public constant MORPHO_WSTUSR_USDC_MARKET_ID =
+        0xd9e34b1eed46d123ac1b69b224de1881dbc88798bc7b70f504920f62f58f28cc;
 
     address public constant EIGEN_LAYER_DELEGATION_MANAGER = 0x39053D51B77DC0d36036Fc1fCc8Cb819df8Ef37A;
     address public constant EIGEN_LAYER_STRATEGY_MANAGER = 0x858646372CC42E1A627fcE94aa7A7033e7CF075A;
@@ -63,25 +78,45 @@ library Constants {
     address public constant CCIP_ETHEREUM_ROUTER = 0x80226fc0Ee2b096224EeAc085Bb9a8cba1146f7D;
     uint64 public constant CCIP_ETHEREUM_CHAIN_SELECTOR = 5009297550715157269;
 
+    address public constant CCTP_ETHEREUM_TOKEN_MESSENGER = 0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d; // Ethereum TokenMessenger V2 deposit for burn
+    address public constant CCTP_ETHEREUM_MESSAGE_TRANSMITTER = 0x0a992d191DEeC32aFe36203Ad87D7d289a738F81; // Ethereum MessageTransmitter receive message
+    // https://developers.circle.com/cctp/concepts/supported-chains-and-domains
+    uint32 public constant CCTP_ARBITRUM_DOMAIN = 3; // Arbitrum EID
+
+    // https://docs.layerzero.network/v2/deployments/deployed-contracts
     uint32 public constant LAYER_ZERO_PLASMA_EID = 30383;
-    uint32 public constant LAYER_ZERO_ETHEREUM_EID = 30101;
+    uint32 public constant LAYER_ZERO_ARBITRUM_EID = 30110;
 
     address public constant ETHEREUM_USDT_OFT_ADAPTER = 0x6C96dE32CEa08842dcc4058c14d3aaAD7Fa41dee;
     address public constant PLASMA_USDT_OFT_ADAPTER = 0x02ca37966753bDdDf11216B73B16C1dE756A7CF9;
+    address public constant ARBITRUM_USDT_OFT_ADAPTER = 0x14E4A1B13bf7F943c8ff7C51fb60FA964A298D92;
 
     address public constant ETHEREUM_WSTUSR_OFT_ADAPTER = 0xab17c1fE647c37ceb9b96d1c27DD189bf8451978;
     address public constant PLASMA_WSTUSR_OFT_ADAPTER = 0x2a52B289bA68bBd02676640aA9F605700c9e5699;
+
+    address public constant ETHEREUM_FLUID_USDC_FTOKEN = 0x9Fb7b4477576Fe5B32be4C1843aFB1e55F251B33;
+    address public constant ETHEREUM_FLUID_USDT_FTOKEN = 0x5C20B550819128074FD538Edf79791733ccEdd18;
 
     address public constant STRETH = 0x277C6A642564A91ff78b008022D65683cEE5CCC5;
     address public constant STRETH_DEPOSIT_QUEUE_ETH = 0xE707321B887b9da133AC5fCc5eDB78Ab177a152D;
     address public constant STRETH_DEPOSIT_QUEUE_WETH = 0x2eA268f1018a4767bF5da42D531Ea9e943942A36;
     address public constant STRETH_DEPOSIT_QUEUE_WSTETH = 0x614cb9E9D13712781DfD15aDC9F3DAde60E4eFAb;
     address public constant STRETH_REDEEM_QUEUE_WSTETH = 0x1ae8C006b5C97707aa074AaeD42BecAD2CF80Da2;
+    address public constant STRETH_SHARE_MANAGER = 0xcd3c0F51798D1daA92Fb192E57844Ae6cEE8a6c7;
+
+    address public constant GGV = 0xef417FCE1883c6653E7dC6AF7c6F85CCDE84Aa09;
+    address public constant DVV = 0x5E362eb2c0706Bd1d134689eC75176018385430B;
 
     address public constant TQETH = 0xDbC81B33A23375A90c8Ba4039d5738CB6f56fE8d;
 
     address public constant CURVE_USDC_USDU_POOL = 0x771c91e699B4B23420de3F81dE2aA38C4041632b;
     address public constant CURVE_USDC_USDU_GAUGE = 0x0E2662672adC42Bb73d39196f9f557C11B4FCcf9;
+
+    address public constant CURVE_USDC_USDT_POOL = 0x4f493B7dE8aAC7d55F71853688b1F7C8F0243C85;
+    address public constant CURVE_USDC_USDT_GAUGE = 0x479dFB03cdDEa20dC4e8788B81Fd7C7A08FD3555;
+    address public constant CURVE_USDC_USDT_REWARD_MINTER = 0xd061D61a4d941c39E5453435B6345Dc261C2fcE0;
+
+    address public constant CURVE_TBTC_CBBTC_POOL = 0xAE6Ee608b297305AbF3EB609B81FEBbb8F6A0bb3;
 
     address public constant MORPHO_USDC_ALPHAPING = 0xb0f05E4De970A1aaf77f8C2F823953a367504BA9;
     address public constant MORPHO_WETH_ALPHAPING = 0x47fe8Ab9eE47DD65c24df52324181790b9F47EfC;
@@ -97,6 +132,26 @@ library Constants {
     address public constant USDT_CHAINLINK_ORACLE = 0x3E7d1eAB13ad0104d2750B8863b489D65364e32D;
     address public constant USDC_CHAINLINK_ORACLE = 0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6;
     address public constant USR_CHAINLINK_ORACLE = 0x34ad75691e25A8E9b681AAA85dbeB7ef6561B42c;
+
+    address public constant UNISWAP_V3_POSITION_MANAGER = 0xC36442b4a4522E871399CD717aBDD847Ab11FE88;
+    address public constant UNISWAP_V4_POSITION_MANAGER = 0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e;
+
+    address public constant UNISWAP_V3_FACTORY = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
+
+    // https://app.uniswap.org/explore/pools/ethereum/
+    address public constant UNISWAP_V3_POOL_TBTC_WBTC_100 = 0x73A38006d23517a1d383C88929B2014F8835B38B;
+    address public constant UNISWAP_V3_POOL_WBTC_CBBTC_100 = 0xe8f7c89C5eFa061e340f2d2F206EC78FD8f7e124;
+    // 0x5459f9d1f649b9f1353a50fd0c8d796b4feb11926bec295cb0614a135febdf9a
+    bytes25 public constant UNISWAP_V4_POOL_TBTC_CBBTC_100 = 0x5459f9d1f649b9f1353a50fd0c8d796b4feb11926bec295cb0;
+    // 0x2f92b371aef58f0abe9c10c06423de083405991f2839638914a1031e91d9a723
+    bytes25 public constant UNISWAP_V4_POOL_WBTC_CBBTC_100 = 0x2f92b371aef58f0abe9c10c06423de083405991f2839638914;
+
+    address public constant ANGLE_PROTOCOL_DISTRIBUTOR = 0x3Ef3D8bA38EBe18DB133cEc108f4D14CE00Dd9Ae;
+
+    address public constant YIELD_BASIS_ZAP = 0xE862bC39B8D5F12D8c4117d3e2D493Dc20051EC6;
+    address public constant YIELD_BASIS_TBTC_TOKEN = 0xaC0a340C1644321D0BBc6404946d828c1EBfAC92;
+    address public constant YIELD_BASIS_WBTC_TOKEN = 0xfBF3C16676055776Ab9B286492D8f13e30e2E763;
+    address public constant YIELD_BASIS_CBBTC_TOKEN = 0xAC0cfa7742069a8af0c63e14FFD0fe6b3e1Bf8D2;
 
     function protocolDeployment() internal pure returns (ProtocolDeployment memory) {
         return ProtocolDeployment({
@@ -129,13 +184,17 @@ library Constants {
             swapModuleFactory: Factory(0xE3575055a24d8642DFA3a51ec766Ef2db2671659),
             consensusImplementation: Consensus(0x0000000167598d2C78E2313fD5328E16bD9A0b13),
             depositQueueImplementation: DepositQueue(payable(0x00000006dA9f179BFE250Dd1c51cD2d3581930c8)),
+            syncDepositQueueImplementation: SyncDepositQueue(payable(0x000000002E2aeaC5Fe65AaB6fE2E6AE0e44F1A3A)),
             signatureDepositQueueImplementation: SignatureDepositQueue(payable(0x00000003887dfBCEbD1e4097Ad89B690de7eFbf9)),
-            redeemQueueImplementation: RedeemQueue(payable(0x0000000285805eac535DADdb9648F1E10DfdC411)),
+            redeemQueueImplementation: RedeemQueue(payable(0x000000000c139266BA06170Ed1DeacA6d11903c1)),
             signatureRedeemQueueImplementation: SignatureRedeemQueue(payable(0x0000000b2082667589A16c4cF18e9f923781c471)),
             feeManagerImplementation: FeeManager(0x0000000dE74e5D51651326E0A3e1ACA94bEAF6E1),
             oracleImplementation: Oracle(0x0000000F0d3D1c31b72368366A4049C05E291D58),
             riskManagerImplementation: RiskManager(0x0000000714cf2851baC1AE2f41871862e9D216fD),
             tokenizedShareManagerImplementation: TokenizedShareManager(0x0000000E8eb7173fA1a3ba60eCA325bcB6aaf378),
+            burnableTokenizedShareManagerImplementation: BurnableTokenizedShareManager(
+                0x000000000c79D2B5cD58AE545afc83030233D7B6
+            ),
             basicShareManagerImplementation: BasicShareManager(0x00000005564AAE40D88e2F08dA71CBe156767977),
             subvaultImplementation: Subvault(payable(0x0000000E535B4E063f8372933A55470e67910a66)),
             verifierImplementation: Verifier(0x000000047Fc878662006E78D5174FB4285637966),
@@ -152,6 +211,9 @@ library Constants {
             swapModuleImplementation: SwapModule(payable(0x00000000d681E85e5783588f87A9573Cb97Eda01))
         });
     }
+
+    DeployVaultFactory public constant deployVaultFactory =
+        DeployVaultFactory(0xdE0000006a45bfD6a310C51c42bBE256847bB6d5);
 
     function getTqETHPreProdDeployment() internal pure returns (VaultDeployment memory $) {
         address proxyAdmin = 0xC1211878475Cd017fecb922Ae63cc3815FA45652;

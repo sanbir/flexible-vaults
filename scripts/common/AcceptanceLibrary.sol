@@ -14,6 +14,13 @@ import "@openzeppelin/contracts/governance/TimelockController.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 library AcceptanceLibrary {
+    struct OracleSubmitterDeployment {
+        OracleSubmitter oracleSubmitter;
+        address admin;
+        address submitter;
+        address accepter;
+    }
+
     function _this() private pure returns (VmSafe) {
         return VmSafe(address(uint160(uint256(keccak256("hevm cheat code")))));
     }
@@ -409,15 +416,36 @@ library AcceptanceLibrary {
                 )
             )
         );
-        require($.depositQueueFactory.implementations() == 2, "Factory DepositQueue: invalid implementations length");
-        require(
-            $.depositQueueFactory.implementationAt(0) == address($.depositQueueImplementation),
-            "Factory DepositQueue: invalid implementation at 0"
-        );
-        require(
-            $.depositQueueFactory.implementationAt(1) == address($.signatureDepositQueueImplementation),
-            "Factory DepositQueue: invalid implementation at 1"
-        );
+
+        if (block.chainid == 1) {
+            require(
+                $.depositQueueFactory.implementations() == 3, "Factory DepositQueue: invalid implementations length"
+            );
+            require(
+                $.depositQueueFactory.implementationAt(0) == address($.depositQueueImplementation),
+                "Factory DepositQueue: invalid implementation at 0"
+            );
+            require(
+                $.depositQueueFactory.implementationAt(1) == address($.signatureDepositQueueImplementation),
+                "Factory DepositQueue: invalid implementation at 1"
+            );
+            require(
+                $.depositQueueFactory.implementationAt(2) == address($.syncDepositQueueImplementation),
+                "Factory DepositQueue: invalid implementation at 2"
+            );
+        } else {
+            require(
+                $.depositQueueFactory.implementations() == 2, "Factory DepositQueue: invalid implementations length"
+            );
+            require(
+                $.depositQueueFactory.implementationAt(0) == address($.depositQueueImplementation),
+                "Factory DepositQueue: invalid implementation at 0"
+            );
+            require(
+                $.depositQueueFactory.implementationAt(1) == address($.signatureDepositQueueImplementation),
+                "Factory DepositQueue: invalid implementation at 1"
+            );
+        }
 
         compareBytecode(
             "Factory RedeemQueue",
@@ -430,25 +458,33 @@ library AcceptanceLibrary {
                 )
             )
         );
-        require($.redeemQueueFactory.implementations() == 2, "Factory RedeemQueue: invalid implementations length");
-        require(
-            $.redeemQueueFactory.implementationAt(0) == address($.redeemQueueImplementation),
-            "Factory RedeemQueue: invalid implementation at 0"
-        );
-        if (block.chainid != 9745) {
+        if (block.chainid == 1) {
+            require($.redeemQueueFactory.implementations() == 3, "Factory RedeemQueue: invalid implementations length");
+            require(
+                $.redeemQueueFactory.isBlacklisted(0) == true, "Factory RedeemQueue: implementation at 0 is blacklisted"
+            );
             require(
                 $.redeemQueueFactory.implementationAt(1) == address($.signatureRedeemQueueImplementation),
                 "Factory RedeemQueue: invalid implementation at 1"
             );
+            require(
+                $.redeemQueueFactory.implementationAt(2) == address($.redeemQueueImplementation),
+                "Factory RedeemQueue: invalid implementation at 1"
+            );
         } else {
-            // require(
-            //     $.redeemQueueFactory.isBlacklisted(1),
-            //     "Factory RedeemQueue: non-blacklisted implementation at 1"
-            // );
-            // require(
-            //     $.redeemQueueFactory.implementationAt(2) == address($.signatureRedeemQueueImplementation),
-            //     "Factory RedeemQueue: invalid implementation at 2"
-            // );
+            require(
+                $.redeemQueueFactory.implementationAt(0) == address($.redeemQueueImplementation),
+                "Factory RedeemQueue: invalid implementation at 0"
+            );
+            if (block.chainid != 9745) {
+                require(
+                    $.redeemQueueFactory.implementations() == 2, "Factory RedeemQueue: invalid implementations length"
+                );
+                require(
+                    $.redeemQueueFactory.implementationAt(1) == address($.signatureRedeemQueueImplementation),
+                    "Factory RedeemQueue: invalid implementation at 1"
+                );
+            }
         }
 
         compareBytecode(
@@ -532,6 +568,72 @@ library AcceptanceLibrary {
         _verifyTimelockControllers($, deployment);
     }
 
+    function runVaultDeploymentChecks(
+        ProtocolDeployment memory $,
+        VaultDeployment memory deployment,
+        OracleSubmitterDeployment memory oracleSubmitterDeployment
+    ) internal {
+        _verifyImplementations($, deployment);
+
+        for (uint256 i = 0; i < deployment.calls.length; i++) {
+            Subvault subvault = Subvault(payable(deployment.vault.subvaultAt(i)));
+            IVerifier verifier = subvault.verifier();
+            for (uint256 j = 0; j < deployment.calls[i].payloads.length; j++) {
+                Call[] memory calls = deployment.calls[i].calls[j];
+                _verifyCalls(verifier, calls, deployment.calls[i].payloads[j]);
+            }
+        }
+
+        _verifyPermissions(deployment);
+
+        _verifyGetters($, deployment);
+        _verifyVerifiersParams(deployment);
+        _verifyTimelockControllers($, deployment);
+        _verifyOracleSubmitter(oracleSubmitterDeployment, deployment.vault);
+    }
+
+    function _verifyOracleSubmitter(OracleSubmitterDeployment memory $, Vault vault) internal {
+        if (address($.oracleSubmitter) == address(0)) {
+            return;
+        }
+        {
+            bytes memory bytecode1 = address($.oracleSubmitter).code;
+            bytes memory bytecode2 = address(
+                new OracleSubmitter(address(type(uint160).max), $.submitter, $.accepter, address(vault.oracle()))
+            ).code;
+            require(
+                bytecode1.length == bytecode2.length && keccak256(bytecode1) == keccak256(bytecode2),
+                "OracleSubmitter: invalid bytecode"
+            );
+        }
+
+        require(address($.oracleSubmitter.oracle()) == address(vault.oracle()), "OracleSubmitter: invalid oracle");
+
+        require(
+            $.oracleSubmitter.getRoleMemberCount(Permissions.DEFAULT_ADMIN_ROLE) == 1,
+            "OracleSubmitter: invalid role count"
+        );
+        require(
+            $.oracleSubmitter.hasRole(Permissions.DEFAULT_ADMIN_ROLE, $.admin), "OracleSubmitter: invalid role holder"
+        );
+        require(
+            $.oracleSubmitter.getRoleMemberCount(Permissions.SUBMIT_REPORTS_ROLE) == 1,
+            "OracleSubmitter: invalid role count"
+        );
+        require(
+            $.oracleSubmitter.hasRole(Permissions.SUBMIT_REPORTS_ROLE, $.submitter),
+            "OracleSubmitter: invalid role holder"
+        );
+        require(
+            $.oracleSubmitter.getRoleMemberCount(Permissions.ACCEPT_REPORT_ROLE) == 1,
+            "OracleSubmitter: invalid role count"
+        );
+        require(
+            $.oracleSubmitter.hasRole(Permissions.ACCEPT_REPORT_ROLE, $.accepter),
+            "OracleSubmitter: invalid role holder"
+        );
+    }
+
     function _verifyVerifiersParams(VaultDeployment memory deployment) internal view {
         for (uint256 i = 0; i < deployment.subvaultVerifiers.length; i++) {
             Verifier verifier = Verifier(deployment.subvaultVerifiers[i]);
@@ -593,8 +695,14 @@ library AcceptanceLibrary {
             require(
                 verifier.getVerificationResult(call.who, call.where, call.value, call.data, payload)
                     == call.verificationResult,
-                "Verifier: invalid verification result"
+                string(abi.encodePacked("Verifier: invalid verification result at call #", Strings.toString(k)))
             );
+        }
+    }
+
+    function runVerifyCallsChecks(IVerifier verifier, SubvaultCalls memory calls) internal view {
+        for (uint256 i = 0; i < calls.payloads.length; i++) {
+            _verifyCalls(verifier, calls.calls[i], calls.payloads[i]);
         }
     }
 
